@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pokédex TCG - Smart Search</title>
+    <style>
+        :root {
+            --primary: #E3350D;
+            --primary-dark: #C1270B;
+            --bg-color: #121212;
+            --surface: #1E1E1E;
+            --surface-hover: #2C2C2C;
+            --text-main: #FFFFFF;
+            --text-muted: #A0A0A0;
+            --border: #333333;
+            --success: #4CAF50;
+            --danger: #F44336;
+            --warning: #FFCB05;
+            --info: #2A75BB;
+            --liga: #FF7B00;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 70px;
+            background-image: radial-gradient(circle at center, #1a1a1a 0%, #121212 100%);
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary) 48%, #000000 48%, #000000 52%, #FFFFFF 52%, #FFFFFF 100%);
+            padding: 15px;
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.3rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 0px #FFF, -1px -1px 0px #FFF, 1px -1px 0px #FFF, -1px 1px 0px #FFF;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 2px solid var(--border);
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 33%;
+            font-weight: 600;
+        }
+
+        .nav-btn.active {
+            color: var(--warning);
+            text-shadow: 0 0 8px rgba(255, 203, 5, 0.4);
+        }
+
+        .nav-btn svg {
+            width: 26px;
+            height: 26px;
+            fill: currentColor;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+            background: var(--bg-color);
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: var(--info);
+        }
+
+        .btn {
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--info);
+            color: var(--info);
+        }
+
+        .btn-liga {
+            background: transparent;
+            border: 2px solid var(--liga);
+            color: var(--liga);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-small {
+            width: auto;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        .card-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .card-item {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: 0.3s;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-item:hover {
+            transform: translateY(-4px);
+            border-color: var(--warning);
+            box-shadow: 0 6px 12px rgba(255, 203, 5, 0.15);
+        }
+
+        .card-item img {
+            width: 100%;
+            border-radius: 6px;
+            background: #2a2a2a;
+            aspect-ratio: 2.5/3.5;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+
+        .card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .price-badge {
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.15);
+            color: var(--success);
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: auto;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .price-badge.custom {
+            background: rgba(42, 117, 187, 0.15);
+            color: var(--info);
+            border-color: rgba(42, 117, 187, 0.3);
+        }
+
+        .price-us {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: block;
+            font-weight: normal;
+        }
+
+        .lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            flex-direction: column;
+        }
+
+        .lightbox.active {
+            display: flex;
+            animation: fadeIn 0.2s;
+        }
+
+        .lightbox img {
+            max-width: 95%;
+            max-height: 85vh;
+            border-radius: 16px;
+            box-shadow: 0 0 30px rgba(255, 203, 5, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .lightbox.active img {
+            transform: scale(1);
+        }
+
+        .lightbox-hint {
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 20px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 20;
+            display: none;
+            overflow-y: auto;
+            flex-direction: column;
+        }
+
+        .modal.active {
+            display: flex;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 15px;
+            background: var(--surface);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 21;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .detail-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .detail-hero img {
+            max-width: 260px;
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .detail-hero img:active {
+            transform: scale(0.98);
+        }
+
+        .detail-info {
+            width: 100%;
+            background: var(--surface);
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+        }
+
+        .detail-info p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .detail-info strong {
+            color: var(--info);
+        }
+
+        .price-box {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .val-brl {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .val-brl.is-custom {
+            color: var(--info);
+        }
+
+        .val-brl.is-converted {
+            color: var(--success);
+        }
+
+        .val-usd {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .liga-integration {
+            margin-top: 15px;
+            border-top: 1px dashed var(--border);
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .liga-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trade-board {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trade-side {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .trade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .trade-header-totals {
+            text-align: right;
+        }
+
+        .trade-header-totals .market-total {
+            font-weight: bold;
+            color: var(--success);
+            font-size: 1.2rem;
+        }
+
+        .trade-slot {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .trade-slot-search {
+            display: flex;
+            gap: 5px;
+            width: 100%;
+        }
+
+        .trade-slot-search input {
+            margin-bottom: 0;
+            padding: 10px;
+        }
+
+        .trade-selected {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .trade-selected img {
+            width: 45px;
+            height: 63px;
+            border-radius: 4px;
+        }
+
+        .trade-selected-info {
+            flex: 1;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .trade-search-list {
+            max-height: 250px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .trade-search-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .trade-search-item:hover {
+            border-color: var(--warning);
+            background: rgba(255, 203, 5, 0.1);
+        }
+
+        .trade-search-item img {
+            width: 35px;
+            border-radius: 3px;
+        }
+
+        .trade-results {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .trade-results.active {
+            display: block;
+            animation: fadeIn 0.4s;
+        }
+
+        .loader-container {
+            display: flex;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .pokeball-spinner {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #E3350D 45%, #333 45%, #333 55%, #FFF 55%);
+            border: 3px solid #333;
+            position: relative;
+            animation: spin 1s infinite ease-in-out;
+        }
+
+        .pokeball-spinner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: #FFF;
+            border: 2px solid #333;
+            border-radius: 50%;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #555;
+            color: white;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .remove-btn:active {
+            background: var(--danger);
+            transform: scale(0.9);
+        }
+
+        .flex-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mt-15 {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>Pokédex TCG</header>
+
+    <main id="tab-search" class="section active container">
+        <input type="text" id="searchInput" placeholder="Ex: Tsareena Radiante, Charizard 015..."
+            onkeypress="if(event.key === 'Enter') executeSearch()">
+        <button class="btn" onclick="executeSearch()">Pesquisar Cartas</button>
+        <div id="searchResults" class="card-list mt-15"></div>
+    </main>
+
+    <main id="tab-collection" class="section container">
+        <div class="flex-row" style="margin-bottom: 15px; align-items: flex-start;">
+            <div>
+                <h2 style="font-size: 1.3rem; margin-bottom: 5px; color: var(--warning);">Sua Coleção</h2>
+                <div id="collectionTotalBRL" style="font-weight: bold; color: var(--success); font-size: 1.3rem;">R$
+                    0.00</div>
+            </div>
+            <button class="btn btn-outline btn-small" onclick="clearCollection()">Limpar Tudo</button>
+        </div>
+        <input type="text" id="collectionFilter" placeholder="Filtrar coleção por nome ou ID..."
+            onkeyup="renderCollection()">
+        <div id="collectionList" class="card-list mt-15"></div>
+    </main>
+
+    <main id="tab-trade" class="section container">
+        <div
+            style="background: rgba(42, 117, 187, 0.1); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem; color: #8cb4e0; border: 1px solid rgba(42, 117, 187, 0.3);">
+            <strong>Dica:</strong> Após adicionar uma carta à troca, você pode clicar no nome dela para ajustar o preço
+            nacional manualmente.
+        </div>
+
+        <div class="trade-board">
+            <div class="trade-side" id="sideA">
+                <div class="trade-header">
+                    <h3 style="color: var(--warning);">Suas Cartas</h3>
+                    <div class="trade-header-totals">
+                        <div class="market-total" id="brlSideA">R$ 0.00</div>
+                    </div>
+                </div>
+                <div id="slotsA"></div>
+                <button class="btn btn-outline btn-small mt-15" onclick="addTradeSlot('A')">+ Adicionar Slot</button>
+            </div>
+
+            <div class="trade-side" id="sideB">
+                <div class="trade-header">
+                    <h3 style="color: var(--warning);">Vai Receber</h3>
+                    <div class="trade-header-totals">
+                        <div class="market-total" id="brlSideB">R$ 0.00</div>
+                    </div>
+                </div>
+                <div id="slotsB"></div>
+                <button class="btn btn-outline btn-small mt-15" onclick="addTradeSlot('B')">+ Adicionar Slot</button>
+            </div>
+        </div>
+
+        <button class="btn mt-15" id="btnEvaluate" onclick="evaluateTrade()" disabled>Avaliar Troca</button>
+
+        <div id="tradeResults" class="trade-results">
+            <h2 id="tradeOpinion" style="margin-bottom: 10px; font-size: 1.5rem;">-</h2>
+            <p id="tradeDiffAbsolute" style="color: var(--text-muted);">-</p>
+            <p id="tradeDiffPercent" style="font-weight: bold; font-size: 1.3rem; margin-top: 5px;">-</p>
+        </div>
+    </main>
+
+    <div id="detailsModal" class="modal">
+        <div class="modal-header">
+            <button class="btn btn-outline btn-small" onclick="closeDetails()">← Voltar</button>
+            <span id="modalTitle" style="font-weight: bold; color: var(--warning);">Detalhes</span>
+            <div style="width: 70px;"></div>
+        </div>
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <div id="imageLightbox" class="lightbox" onclick="closeLightbox()">
+        <img id="lightboxImg" src="" alt="Zoom Carta">
+        <div class="lightbox-hint">Toque em qualquer lugar para fechar</div>
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-btn active" onclick="switchTab('search', this)">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            Buscar
+        </button>
+        <button class="nav-btn" onclick="switchTab('collection', this)">
+            <svg viewBox="0 0 24 24">
+                <path
+                    d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
+            </svg>
+            Coleção
+        </button>
+        <button class="nav-btn" onclick="switchTab('trade', this)">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11V5.5L10.5 11 16 16.5V11zM8 18.5L13.5 13 8 7.5V13z" />
+            </svg>
+            Troca
+        </button>
+    </nav>
+
+    <script>
+        const API_BASE = 'https://api.pokemontcg.io/v2';
+        const USD_TO_BRL = 5.0;
+
+        let collection = JSON.parse(localStorage.getItem('pokemonCollection')) || [];
+        let customPrices = JSON.parse(localStorage.getItem('pokemonCustomPrices')) || {};
+
+        let currentDetailCard = null;
+        let tradeState = { A: [], B: [] };
+
+        // ==========================================
+        // SMART QUERY BUILDER (CORRIGIDO - AND + NÚMERO)
+        // ==========================================
+        function buildSmartQuery(input) {
+            const ptEnMap = {
+                'radiante': 'radiant', 'brilhante': 'shining', 'luminoso': 'light', 'luminosa': 'light',
+                'sombrio': 'dark', 'sombria': 'dark', 'estrela': 'star', 'aliados': 'tag',
+                'voador': 'flying', 'surfista': 'surfing', 'fossil': 'fossil', 'basico': 'basic',
+                'treinador': 'trainer', 'apoiador': 'supporter', 'item': 'item', 'estagio': 'stage',
+                'energia': 'energy', 'golpe': 'strike', 'fluido': 'rapid', 'decisivo': 'single',
+                'fusao': 'fusion', 'mega': 'M', 'ex': 'EX', 'gx': 'GX', 'vmax': 'VMAX', 'vstar': 'VSTAR'
+            };
+
+            let cleanInput = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            if (!cleanInput) return "";
+
+            // 1. Detecta se há um número (ex: "086", "025", "7")
+            let numberToken = null;
+            let tokens = cleanInput.split(/\s+/);
+            let nameTokens = [];
+
+            for (let t of tokens) {
+                // Se for apenas dígitos (com ou sem zeros à esquerda) → é número da carta
+                if (/^\d+$/.test(t)) {
+                    numberToken = t;  // ex: "086"
+                } else {
+                    nameTokens.push(t);
+                }
+            }
+
+            // 2. Traduz os tokens do nome
+            let translatedTerms = nameTokens.map(t => ptEnMap[t] || t);
+
+            // 3. Constrói a query
+            let conditions = [];
+
+            // Condição do número (exato)
+            if (numberToken) {
+                // Remove zeros à esquerda para comparar com o campo number da API (ex: "86" ao invés de "086")
+                let normalizedNumber = parseInt(numberToken, 10).toString();
+                conditions.push(`number:"${normalizedNumber}"`);
+            }
+
+            // Condições do nome (busca por substring, semelhante ao que você já usava)
+            for (let term of translatedTerms) {
+                if (term.length > 0) {
+                    conditions.push(`name:"*${term}*"`);
+                }
+            }
+
+            // Se não houver nenhuma condição (ex: input vazio), retorna vazio
+            if (conditions.length === 0) return "";
+
+            // Junta com AND (garante que TODOS os termos apareçam)
+            return conditions.join(" AND ");
+        }
+
+        // ==========================================
+        // UTILS & PRICING LOGIC
+        // ==========================================
+        function getPtImageFallback(c, isLarge = false) {
+            if (!c || !c.set) return { ptUrl: '', enUrl: isLarge ? (c.images?.large || '') : (c.images?.small || '') };
+
+            const seriesMap = {
+                'Sword & Shield': 'swsh', 'Sun & Moon': 'sm', 'Scarlet & Violet': 'sv',
+                'XY': 'xy', 'Black & White': 'bw', 'HeartGold & SoulSilver': 'hgss',
+                'Platinum': 'pl', 'Diamond & Pearl': 'dp', 'EX': 'ex', 'Neo': 'neo', 'Base': 'base'
+            };
+
+            const seriesName = c.set.series || '';
+            let seriesCode = seriesMap[seriesName] || seriesName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const setId = c.set.id.toLowerCase();
+            const number = c.number.toLowerCase();
+            const quality = isLarge ? 'high' : 'low';
+
+            const ptUrl = `https://assets.tcgdex.net/pt/${seriesCode}/${setId}/${number}/${quality}.webp`;
+            const enUrl = isLarge ? (c.images?.large || '') : (c.images?.small || '');
+
+            return { ptUrl, enUrl };
+        }
+
+        function formatDateBR(dateStr) {
+            if (!dateStr) return 'N/A';
+            const parts = dateStr.split(/[-/]/);
+            if (parts.length === 3 && parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return dateStr;
+        }
+
+        function extractPrices(card) {
+            let min = Infinity, max = -Infinity, market = 0, marketCount = 0;
+            if (card.tcgplayer && card.tcgplayer.prices) {
+                for (let key in card.tcgplayer.prices) {
+                    const p = card.tcgplayer.prices[key];
+                    if (p.low !== undefined && p.low < min) min = p.low;
+                    if (p.high !== undefined && p.high > max) max = p.high;
+                    if (p.market !== undefined) { market += p.market; marketCount++; }
+                }
+            }
+            else if (card.cardmarket && card.cardmarket.prices) {
+                const p = card.cardmarket.prices;
+                if (p.lowPrice !== undefined && p.lowPrice < min) min = p.lowPrice;
+                if (p.trendPrice !== undefined && p.trendPrice > max) max = p.trendPrice * 1.1;
+                if (p.averageSellPrice !== undefined) { market += p.averageSellPrice * 1.1; marketCount++; }
+            }
+            if (min === Infinity) min = 0;
+            if (max === -Infinity) max = 0;
+            if (marketCount > 0) market = market / marketCount;
+            if (market === 0 && max > 0) market = (min + max) / 2;
+
+            return { min, max, market };
+        }
+
+        function getEffectiveBRL(cardId, marketUSD) {
+            if (customPrices[cardId] !== undefined) {
+                return { value: customPrices[cardId], isCustom: true };
+            }
+            return { value: marketUSD * USD_TO_BRL, isCustom: false };
+        }
+
+        function formatBRL(val) { return `R$ ${val.toFixed(2)}`; }
+        function formatUSD(val) { return `U$ ${val.toFixed(2)}`; }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            btnElement.classList.add('active');
+            if (tabId === 'collection') renderCollection();
+        }
+
+        function triggerGlobalUpdate() {
+            if (document.getElementById('tab-collection').classList.contains('active')) renderCollection();
+            renderTradeSlots('A');
+            renderTradeSlots('B');
+        }
+
+        // ==========================================
+        // FULLSCREEN LIGHTBOX
+        // ==========================================
+        function openLightbox(ptUrl, enUrl, event) {
+            if (event) event.stopPropagation();
+            const lb = document.getElementById('imageLightbox');
+            const img = document.getElementById('lightboxImg');
+
+            img.src = ptUrl || enUrl;
+            img.onerror = function () { this.onerror = null; this.src = enUrl; };
+
+            lb.classList.add('active');
+        }
+
+        function closeLightbox() {
+            document.getElementById('imageLightbox').classList.remove('active');
+        }
+
+        // ==========================================
+        // SEARCH TAB
+        // ==========================================
+        function getLoadingHTML() {
+            return `<div class="loader-container"><div class="pokeball-spinner"></div></div>`;
+        }
+
+        async function executeSearch() {
+            const input = document.getElementById('searchInput').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+            if (!input) return;
+
+            resultsDiv.innerHTML = getLoadingHTML();
+
+            // NOVO: Usando a busca inteligente!
+            let queryStr = buildSmartQuery(input);
+            if (!queryStr) {
+                resultsDiv.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px;">Termo inválido.</div>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/cards?q=${encodeURIComponent(queryStr)}&pageSize=40`);
+                const json = await res.json();
+                let cards = json.data || [];
+
+                resultsDiv.innerHTML = '';
+                if (cards.length === 0) {
+                    resultsDiv.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px;">Nenhum Pokémon selvagem encontrado com esses termos. Tente outro nome ou número!</div>';
+                    return;
+                }
+
+                cards.forEach(c => {
+                    const prices = extractPrices(c);
+                    const brlData = getEffectiveBRL(c.id, prices.market);
+                    const imgData = getPtImageFallback(c, false);
+
+                    const div = document.createElement('div');
+                    div.className = 'card-item';
+
+                    const imgHTML = imgData.enUrl
+                        ? `<img src="${imgData.ptUrl}" onerror="this.onerror=null; this.src='${imgData.enUrl}';" alt="${c.name}" loading="lazy">`
+                        : '<div style="height:140px;background:#2a2a2a;margin-bottom:10px; border-radius: 6px;"></div>';
+
+                    div.innerHTML = `
+                        ${imgHTML}
+                        <div style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="card-title">${c.name}</div>
+                            <div class="card-subtitle">${c.id} (#${c.number})</div>
+                            <div class="price-badge ${brlData.isCustom ? 'custom' : ''}">
+                                ${formatBRL(brlData.value)}
+                                <span class="price-us">REF: ${formatUSD(prices.market)}</span>
+                            </div>
+                        </div>
+                    `;
+                    window[`cardData_${c.id}`] = c;
+                    div.onclick = () => openDetailsFromObjectGlobal(c.id);
+                    resultsDiv.appendChild(div);
+                });
+            } catch (error) {
+                resultsDiv.innerHTML = '<div style="text-align:center; padding: 20px; color: var(--danger);">Erro de conexão com o Poké-Center.</div>';
+            }
+        }
+
+        // ==========================================
+        // DETAILS MODAL & PRICING OVERRIDE
+        // ==========================================
+        function openDetailsFromObjectGlobal(cardId) {
+            if (window[`cardData_${cardId}`]) openDetailsFromObject(window[`cardData_${cardId}`]);
+            else openDetails(cardId);
+        }
+
+        function openDetailsFromObject(c) {
+            currentDetailCard = c;
+            const modal = document.getElementById('detailsModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.add('active');
+
+            const prices = extractPrices(c);
+            const brlData = getEffectiveBRL(c.id, prices.market);
+            const isCollected = collection.find(item => item.id === c.id);
+            const imgDataLg = getPtImageFallback(c, true);
+
+            const ligaUrl = `https://www.ligapokemon.com.br/?view=cards/search&card=${encodeURIComponent(c.name + ' (' + c.number + ')')}`;
+            const releaseBR = formatDateBR(c.set && c.set.releaseDate ? c.set.releaseDate : '');
+
+            const imgHTML = imgDataLg.enUrl
+                ? `<img src="${imgDataLg.ptUrl}" onerror="this.onerror=null; this.src='${imgDataLg.enUrl}';" alt="${c.name}" onclick="openLightbox('${imgDataLg.ptUrl}', '${imgDataLg.enUrl}', event)">`
+                : '<div style="width:200px;height:280px;background:#2a2a2a;margin-bottom:20px;border-radius:10px;"></div>';
+
+            content.innerHTML = `
+                <div class="detail-hero">
+                    ${imgHTML}
+                    
+                    <h2 style="margin-bottom: 5px; text-align: center;">${c.name}</h2>
+                    <p style="color: var(--warning); margin-bottom: 15px; font-weight: bold;">${c.set ? c.set.name : ''} - #${c.number}</p>
+                    
+                    <div class="price-box">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">Valor Considerado</p>
+                        <div class="val-brl ${brlData.isCustom ? 'is-custom' : 'is-converted'}">
+                            ${formatBRL(brlData.value)} ${brlData.isCustom ? '✏️' : ''}
+                        </div>
+                        <div class="val-usd">Referência Americana: ${formatBRL(prices.market * USD_TO_BRL)} (${formatUSD(prices.market)})</div>
+                        
+                        <div class="liga-integration">
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">Defina o valor da LigaPokémon para ter trocas justas:</p>
+                            <a href="${ligaUrl}" target="_blank" class="btn btn-liga" style="text-decoration: none; padding: 10px;">
+                                🔍 Procurar na LigaPokémon
+                            </a>
+                            <div class="liga-row">
+                                <input type="number" id="customBrlInput" placeholder="Ex: 180.50" value="${brlData.isCustom ? brlData.value : ''}" style="margin-bottom: 0; text-align: center;">
+                                <button class="btn btn-success" style="width: 100px;" onclick="saveCustomPrice('${c.id}')">Salvar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn ${isCollected ? 'btn-danger' : ''}" onclick="toggleCollectionCard()">
+                        ${isCollected ? 'Remover da Coleção' : 'Adicionar à Coleção'}
+                    </button>
+                </div>
+
+                <div class="detail-info">
+                    <p><strong>ID Global:</strong> ${c.id}</p>
+                    <p><strong>Raridade:</strong> ${c.rarity || 'N/A'}</p>
+                    <p><strong>Tipo:</strong> ${c.supertype} ${c.subtypes ? '- ' + c.subtypes.join(', ') : ''}</p>
+                    <p><strong>HP:</strong> ${c.hp || 'N/A'}</p>
+                    <p><strong>Lançamento:</strong> ${releaseBR}</p>
+                </div>
+            `;
+        }
+
+        function saveCustomPrice(cardId) {
+            const input = document.getElementById('customBrlInput').value;
+            const val = parseFloat(input.replace(',', '.'));
+
+            if (!isNaN(val) && val >= 0) customPrices[cardId] = val;
+            else delete customPrices[cardId];
+
+            localStorage.setItem('pokemonCustomPrices', JSON.stringify(customPrices));
+            openDetailsFromObject(currentDetailCard);
+            triggerGlobalUpdate();
+        }
+
+        async function openDetails(cardId) {
+            document.getElementById('detailsModal').classList.add('active');
+            document.getElementById('modalContent').innerHTML = getLoadingHTML();
+            try {
+                const res = await fetch(`${API_BASE}/cards/${cardId}`);
+                const json = await res.json();
+                if (json.data) openDetailsFromObject(json.data);
+            } catch (e) {
+                document.getElementById('modalContent').innerHTML = '<div style="text-align:center; padding: 20px;">Erro ao carregar os dados.</div>';
+            }
+        }
+
+        function closeDetails() {
+            document.getElementById('detailsModal').classList.remove('active');
+            currentDetailCard = null;
+        }
+
+        // ==========================================
+        // COLLECTION TAB
+        // ==========================================
+        function toggleCollectionCard() {
+            if (!currentDetailCard) return;
+            const idx = collection.findIndex(c => c.id === currentDetailCard.id);
+            if (idx >= 0) {
+                collection.splice(idx, 1);
+            } else {
+                const imgDataSm = getPtImageFallback(currentDetailCard, false);
+                const imgDataLg = getPtImageFallback(currentDetailCard, true);
+
+                collection.push({
+                    id: currentDetailCard.id,
+                    name: currentDetailCard.name,
+                    image: imgDataSm.enUrl,
+                    imagePt: imgDataSm.ptUrl,
+                    number: currentDetailCard.number,
+                    prices: extractPrices(currentDetailCard)
+                });
+            }
+            saveCollection();
+            openDetailsFromObject(currentDetailCard);
+        }
+
+        function removeCollectionCard(id, event) {
+            event.stopPropagation();
+            collection = collection.filter(c => c.id !== id);
+            saveCollection();
+            renderCollection();
+        }
+
+        function clearCollection() {
+            if (confirm('Atenção: Você vai limpar toda a sua coleção salva! Continuar?')) {
+                collection = [];
+                saveCollection();
+                renderCollection();
+            }
+        }
+
+        function saveCollection() {
+            localStorage.setItem('pokemonCollection', JSON.stringify(collection));
+            if (document.getElementById('tab-collection').classList.contains('active')) renderCollection();
+        }
+
+        function renderCollection() {
+            const filter = document.getElementById('collectionFilter').value.toLowerCase();
+            const listDiv = document.getElementById('collectionList');
+            const filtered = collection.filter(c => c.name.toLowerCase().includes(filter) || c.id.toLowerCase().includes(filter));
+
+            let totalBRL = 0;
+            collection.forEach(c => {
+                const brlData = getEffectiveBRL(c.id, c.prices.market);
+                totalBRL += brlData.value;
+            });
+
+            document.getElementById('collectionTotalBRL').innerText = formatBRL(totalBRL);
+            listDiv.innerHTML = '';
+
+            if (filtered.length === 0) {
+                listDiv.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px; color:var(--text-muted);">Sua box está vazia. Adicione cartas primeiro!</div>';
+                return;
+            }
+
+            filtered.forEach(c => {
+                const brlData = getEffectiveBRL(c.id, c.prices.market);
+                const ptUrl = c.imagePt || c.image;
+                const enUrl = c.image;
+
+                const div = document.createElement('div');
+                div.className = 'card-item';
+
+                const imgHTML = c.image
+                    ? `<img src="${ptUrl}" onerror="this.onerror=null; this.src='${enUrl}';" alt="${c.name}" loading="lazy">`
+                    : '<div style="height:140px;background:#2a2a2a;margin-bottom:10px; border-radius: 6px;"></div>';
+
+                div.innerHTML = `
+                    <button class="remove-btn" onclick="removeCollectionCard('${c.id}', event)">✕</button>
+                    ${imgHTML}
+                    <div style="flex:1; display:flex; flex-direction:column;">
+                        <div class="card-title">${c.name}</div>
+                        <div class="card-subtitle">${c.id}</div>
+                        <div class="price-badge ${brlData.isCustom ? 'custom' : ''}">${formatBRL(brlData.value)}</div>
+                    </div>
+                `;
+                div.onclick = () => openDetails(c.id);
+                listDiv.appendChild(div);
+            });
+        }
+
+        // ==========================================
+        // TRADE TAB
+        // ==========================================
+        function renderTradeSlots(side) {
+            const container = document.getElementById(`slots${side}`);
+            container.innerHTML = '';
+
+            tradeState[side].forEach((slot, index) => {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'trade-slot';
+
+                if (slot.resolved) {
+                    const brlData = getEffectiveBRL(slot.card.id, slot.card.prices.market);
+                    const ptUrl = slot.card.imagePt || slot.card.image;
+                    const enUrl = slot.card.image;
+
+                    slotDiv.innerHTML = `
+                        <div class="trade-selected" style="position: relative;">
+                            <button class="remove-btn" style="top: -10px; right: -10px;" onclick="removeTradeSlot('${side}', ${index}, event)">✕</button>
+                            <div onclick="openDetails('${slot.card.id}')" style="display:flex; align-items:center; gap: 12px; cursor: pointer;">
+                                ${slot.card.image ? `<img src="${ptUrl}" onerror="this.onerror=null; this.src='${enUrl}';">` : `<div style="height:63px; width:45px; background:#2a2a2a; border-radius:4px;"></div>`}
+                                <div class="trade-selected-info">
+                                    <strong style="color:var(--warning);">${slot.card.name}</strong><br>
+                                    <span class="price-badge ${brlData.isCustom ? 'custom' : ''}" style="margin-top:6px;">
+                                        ${formatBRL(brlData.value)} ${brlData.isCustom ? '✏️' : ''}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (slot.searchResults) {
+                    let listHTML = slot.searchResults.map((res, rIdx) => {
+                        const imgData = getPtImageFallback(res, false);
+                        return `
+                            <div class="trade-search-item" onclick="selectTradeResult('${side}', ${index}, ${rIdx})">
+                                ${imgData.enUrl ? `<img src="${imgData.ptUrl}" onerror="this.onerror=null; this.src='${imgData.enUrl}';">` : '<div style="width:35px;height:49px;background:#333;"></div>'}
+                                <div>
+                                    <div style="font-weight:bold; font-size:0.9rem;">${res.name}</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">${res.set.name} - #${res.number}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    slotDiv.innerHTML = `
+                        <div style="width: 100%;">
+                            <div style="margin-bottom: 8px; font-size: 0.85rem; color: var(--info);">Escolha a versão correta:</div>
+                            <div class="trade-search-list">${listHTML}</div>
+                            <button class="btn btn-outline btn-small mt-15" onclick="cancelTradeSearch('${side}', ${index})">Voltar para busca</button>
+                        </div>
+                    `;
+                } else {
+                    slotDiv.innerHTML = `
+                        <div class="trade-slot-search">
+                            <input type="text" id="tradeInput_${side}_${index}" placeholder="Nome ou ID da carta..." onkeypress="if(event.key === 'Enter') searchTradeSlot('${side}', ${index})">
+                            <button class="btn btn-small" style="width:45px; display:flex; align-items:center; justify-content:center;" onclick="searchTradeSlot('${side}', ${index})">🔍</button>
+                        </div>
+                        <div id="loaderTrade_${side}_${index}" style="display:none; text-align:center; padding:10px;"><div class="pokeball-spinner" style="width:25px;height:25px;border-width:2px;margin:auto;"></div></div>
+                        <div style="text-align:right; margin-top:5px;">
+                            <button class="btn btn-danger btn-small" style="background:transparent; color:var(--danger); padding:0;" onclick="removeTradeSlot('${side}', ${index}, event)">Remover Slot</button>
+                        </div>
+                    `;
+                }
+                container.appendChild(slotDiv);
+            });
+
+            updateTradeTotals();
+        }
+
+        function addTradeSlot(side) {
+            tradeState[side].push({ resolved: false, card: null, searchResults: null });
+            renderTradeSlots(side);
+        }
+
+        function removeTradeSlot(side, index, event) {
+            if (event) event.stopPropagation();
+            tradeState[side].splice(index, 1);
+            renderTradeSlots(side);
+        }
+
+        function cancelTradeSearch(side, index) {
+            tradeState[side][index].searchResults = null;
+            renderTradeSlots(side);
+        }
+
+        async function searchTradeSlot(side, index) {
+            const input = document.getElementById(`tradeInput_${side}_${index}`).value.trim();
+            if (!input) return;
+
+            document.getElementById(`loaderTrade_${side}_${index}`).style.display = 'block';
+
+            // NOVO: Usando a busca inteligente na Troca
+            let queryStr = buildSmartQuery(input);
+            if (!queryStr) {
+                alert("Termo inválido.");
+                document.getElementById(`loaderTrade_${side}_${index}`).style.display = 'none';
+                return;
+            }
+
+            try {
+                let res = await fetch(`${API_BASE}/cards?q=${encodeURIComponent(queryStr)}&pageSize=15`);
+                let json = await res.json();
+
+                if (json.data && json.data.length > 0) {
+                    tradeState[side][index].searchResults = json.data;
+                    renderTradeSlots(side);
+                } else {
+                    alert("Carta não encontrada. Tente ser mais específico.");
+                    document.getElementById(`loaderTrade_${side}_${index}`).style.display = 'none';
+                }
+            } catch (e) {
+                alert("Erro ao conectar com o Poké-Center.");
+                document.getElementById(`loaderTrade_${side}_${index}`).style.display = 'none';
+            }
+        }
+
+        function selectTradeResult(side, slotIndex, resultIndex) {
+            const c = tradeState[side][slotIndex].searchResults[resultIndex];
+            const imgDataSm = getPtImageFallback(c, false);
+
+            tradeState[side][slotIndex] = {
+                resolved: true,
+                searchResults: null,
+                card: {
+                    id: c.id,
+                    name: c.name,
+                    image: imgDataSm.enUrl,
+                    imagePt: imgDataSm.ptUrl,
+                    prices: extractPrices(c)
+                }
+            };
+            window[`cardData_${c.id}`] = c;
+            renderTradeSlots(side);
+        }
+
+        function updateTradeTotals() {
+            let totalA = 0, totalB = 0;
+            tradeState.A.forEach(s => { if (s.resolved) totalA += getEffectiveBRL(s.card.id, s.card.prices.market).value; });
+            tradeState.B.forEach(s => { if (s.resolved) totalB += getEffectiveBRL(s.card.id, s.card.prices.market).value; });
+
+            document.getElementById('brlSideA').innerText = formatBRL(totalA);
+            document.getElementById('brlSideB').innerText = formatBRL(totalB);
+
+            document.getElementById('btnEvaluate').disabled = !(tradeState.A.some(s => s.resolved) && tradeState.B.some(s => s.resolved));
+            document.getElementById('tradeResults').classList.remove('active');
+        }
+
+        function evaluateTrade() {
+            let totalA = tradeState.A.reduce((acc, s) => acc + (s.resolved ? getEffectiveBRL(s.card.id, s.card.prices.market).value : 0), 0);
+            let totalB = tradeState.B.reduce((acc, s) => acc + (s.resolved ? getEffectiveBRL(s.card.id, s.card.prices.market).value : 0), 0);
+
+            const diff = totalB - totalA;
+            const maxVal = Math.max(totalA, totalB);
+            const percentDiff = maxVal === 0 ? 0 : (Math.abs(diff) / maxVal) * 100;
+
+            const resDiv = document.getElementById('tradeResults');
+            const opEl = document.getElementById('tradeOpinion');
+            const absEl = document.getElementById('tradeDiffAbsolute');
+            const pctEl = document.getElementById('tradeDiffPercent');
+
+            absEl.innerText = `Diferença Financeira: ${formatBRL(Math.abs(diff))}`;
+            pctEl.innerText = `${percentDiff.toFixed(1)}% de diferença`;
+
+            if (totalA === totalB) {
+                opEl.innerText = "Perfeitamente Equilibrada ⚖️"; opEl.style.color = "var(--warning)";
+            } else if (percentDiff <= 10) {
+                opEl.innerText = "Troca Justa 🤝"; opEl.style.color = "var(--warning)";
+            } else if (diff > 0) {
+                opEl.innerText = "Boa Troca! 🚀"; opEl.style.color = "var(--success)";
+            } else {
+                opEl.innerText = "Má Troca! 💀"; opEl.style.color = "var(--danger)";
+            }
+
+            resDiv.classList.add('active');
+            setTimeout(() => { window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); }, 100);
+        }
+
+        addTradeSlot('A');
+        addTradeSlot('B');
+
+    </script>
+</body>
+
+</html>
