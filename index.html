@@ -748,7 +748,7 @@
         let tradeState = { A: [], B: [] };
 
         // ==========================================
-        // SMART QUERY BUILDER (CORRIGIDO - AND + NÚMERO)
+        // SMART QUERY BUILDER
         // ==========================================
         function buildSmartQuery(input) {
             const ptEnMap = {
@@ -762,45 +762,41 @@
 
             let cleanInput = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
             if (!cleanInput) return "";
-
-            // 1. Detecta se há um número (ex: "086", "025", "7")
-            let numberToken = null;
+                
             let tokens = cleanInput.split(/\s+/);
+            let numberToken = null;
             let nameTokens = [];
 
+            // Separa o termo de número (ex: TG05, 025, 086) do resto da busca
             for (let t of tokens) {
-                // Se for apenas dígitos (com ou sem zeros à esquerda) → é número da carta
-                if (/^\d+$/.test(t)) {
-                    numberToken = t;  // ex: "086"
+                // VERIFICA SE É UM PADRÃO DE CÓDIGO ESPECIAL (TG, SV, etc.)
+                if (/^[a-z]{2,3}\d{2,3}$/i.test(t) || /^\d+$/.test(t)) {
+                    numberToken = t.toUpperCase();
                 } else {
                     nameTokens.push(t);
                 }
             }
-
-            // 2. Traduz os tokens do nome
-            let translatedTerms = nameTokens.map(t => ptEnMap[t] || t);
-
-            // 3. Constrói a query
+        
             let conditions = [];
-
-            // Condição do número (exato)
+        
+            // PRIORIDADE 1: Busca por número exato (agora funciona para TG05!)
             if (numberToken) {
-                // Remove zeros à esquerda para comparar com o campo number da API (ex: "86" ao invés de "086")
-                let normalizedNumber = parseInt(numberToken, 10).toString();
-                conditions.push(`number:"${normalizedNumber}"`);
+                conditions.push(`number:"${numberToken}"`);
             }
-
-            // Condições do nome (busca por substring, semelhante ao que você já usava)
-            for (let term of translatedTerms) {
-                if (term.length > 0) {
-                    conditions.push(`name:"*${term}*"`);
+        
+            // PRIORIDADE 2: Busca por nome, se houver
+            for (let term of nameTokens) {
+                let translated = ptEnMap[term] || term;
+                if (translated.length > 0) {
+                    conditions.push(`name:"*${translated}*"`);
                 }
             }
-
-            // Se não houver nenhuma condição (ex: input vazio), retorna vazio
-            if (conditions.length === 0) return "";
-
-            // Junta com AND (garante que TODOS os termos apareçam)
+        
+            // Se não encontrou nenhum termo, busca por número genérico
+            if (conditions.length === 0 && !numberToken) {
+                return `number:"*${cleanInput}*"`;
+            }
+        
             return conditions.join(" AND ");
         }
 
