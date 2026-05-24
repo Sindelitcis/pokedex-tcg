@@ -748,55 +748,119 @@
         let tradeState = { A: [], B: [] };
 
         // ==========================================
-        // SMART QUERY BUILDER
+        // SMART QUERY BUILDER (CORRIGIDO - SUPORTA FRASES E PORTUGUÊS)
         // ==========================================
         function buildSmartQuery(input) {
-            const ptEnMap = {
+            // Mapeamento de palavras e frases comuns (português -> inglês)
+            const translationMap = {
+                // palavras soltas
                 'radiante': 'radiant', 'brilhante': 'shining', 'luminoso': 'light', 'luminosa': 'light',
                 'sombrio': 'dark', 'sombria': 'dark', 'estrela': 'star', 'aliados': 'tag',
                 'voador': 'flying', 'surfista': 'surfing', 'fossil': 'fossil', 'basico': 'basic',
                 'treinador': 'trainer', 'apoiador': 'supporter', 'item': 'item', 'estagio': 'stage',
                 'energia': 'energy', 'golpe': 'strike', 'fluido': 'rapid', 'decisivo': 'single',
-                'fusao': 'fusion', 'mega': 'M', 'ex': 'EX', 'gx': 'GX', 'vmax': 'VMAX', 'vstar': 'VSTAR'
+                'fusao': 'fusion', 'mega': 'M', 'ex': 'EX', 'gx': 'GX', 'vmax': 'VMAX', 'vstar': 'VSTAR',
+                // NOVAS ADIÇÕES para Pokémon em português
+                'asa rasteira': 'slither wing',   // Slither Wing
+                'asa': 'wing',                    // fallback
+                'rasteira': 'slither',
+                'unha feroz': 'great tusk',       // Great Tusk
+                'unha': 'tusk',
+                'feroz': 'great',
+                'repulsa': 'scream tail',         // Scream Tail
+                'cauda': 'tail',
+                'repulsa estridente': 'scream tail',
+                'cabelo': 'brute bonnet',         // Brute Bonnet
+                'boné': 'bonnet',
+                'bruto': 'brute',
+                'fúria': 'flutter mane',          // Flutter Mane
+                'crina': 'mane',
+                'carrilhão': 'sandy shocks',      // Sandy Shocks
+                'areia': 'sandy',
+                'choque': 'shocks',
+                'crista': 'roaring moon',         // Roaring Moon
+                'lua': 'moon',
+                'rugido': 'roaring',
+                'ferradura': 'iron treads',       // Iron Treads
+                'trilha': 'treads',
+                'ferro': 'iron',
+                'mão': 'iron hands',              // Iron Hands
+                'manos': 'hands',
+                'garganta': 'iron throat',        // Iron Throat
+                'garganta de ferro': 'iron throat',
+                'cabeça': 'iron head',            // Iron Head
+                'cabeça de ferro': 'iron head',
+                'faísca': 'iron spark',           // Iron Spark
+                'faisca': 'spark',
+                'valente': 'iron valiant',        // Iron Valiant
+                'valente de ferro': 'iron valiant',
+                // Outros Pokémon comuns em português
+                'pikachu': 'pikachu',
+                'charizard': 'charizard',
+                'venusaur': 'venusaur',
+                'blastoise': 'blastoise',
+                'mewtwo': 'mewtwo',
+                'gengar': 'gengar',
+                'dragonite': 'dragonite',
+                'tsareena': 'tsareena'
             };
 
             let cleanInput = input.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
             if (!cleanInput) return "";
-                
-            let tokens = cleanInput.split(/\s+/);
+
+            // Primeiro, tenta substituir frases inteiras (prioridade maior)
+            let translatedInput = cleanInput;
+            for (let [pt, en] of Object.entries(translationMap)) {
+                // Cria regex para a frase (palavras exatas, mas sem se preocupar com boundaries complexos)
+                let regex = new RegExp(`\\b${pt.replace(/ /g, '\\s+')}\\b`, 'gi');
+                if (regex.test(translatedInput)) {
+                    translatedInput = translatedInput.replace(regex, en);
+                }
+            }
+
+            // Agora divide em tokens (separados por espaços)
+            let tokens = translatedInput.split(/\s+/);
             let numberToken = null;
             let nameTokens = [];
 
-            // Separa o termo de número (ex: TG05, 025, 086) do resto da busca
             for (let t of tokens) {
-                // VERIFICA SE É UM PADRÃO DE CÓDIGO ESPECIAL (TG, SV, etc.)
-                if (/^[a-z]{2,3}\d{2,3}$/i.test(t) || /^\d+$/.test(t)) {
+                // Detecta números (ex: 025, 107, TG05, SV01, etc.)
+                if (/^\d+$/.test(t)) {
+                    // Número puro: remove zeros à esquerda para busca exata
+                    let normalized = parseInt(t, 10).toString();
+                    numberToken = normalized;
+                }
+                else if (/^[a-z]{2,3}\d{2,3}$/i.test(t)) {
+                    // Código especial como TG05, SV01, etc.
                     numberToken = t.toUpperCase();
-                } else {
-                    nameTokens.push(t);
+                }
+                else {
+                    // Qualquer outro termo é considerado parte do nome
+                    if (t.length > 0) nameTokens.push(t);
                 }
             }
-        
+
             let conditions = [];
-        
-            // PRIORIDADE 1: Busca por número exato (agora funciona para TG05!)
+
+            // Condição de número (se existir)
             if (numberToken) {
                 conditions.push(`number:"${numberToken}"`);
             }
-        
-            // PRIORIDADE 2: Busca por nome, se houver
+
+            // Condições de nome (busca por substring)
             for (let term of nameTokens) {
-                let translated = ptEnMap[term] || term;
-                if (translated.length > 0) {
-                    conditions.push(`name:"*${translated}*"`);
+                if (term.length > 0) {
+                    // Se o termo tiver mais de 2 caracteres, busca com *term*
+                    conditions.push(`name:"*${term}*"`);
                 }
             }
-        
-            // Se não encontrou nenhum termo, busca por número genérico
-            if (conditions.length === 0 && !numberToken) {
-                return `number:"*${cleanInput}*"`;
+
+            // Se não tem número nem nome, busca genérica
+            if (conditions.length === 0) {
+                return `name:"*${cleanInput}*"`;
             }
-        
+
+            // Junta com AND para refinar
             return conditions.join(" AND ");
         }
 
